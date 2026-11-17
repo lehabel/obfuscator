@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Символьный переводчик</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--text:#1d1d1f;--muted:#6b6b72;--accent:#5b4bdb;--accent-t:#fff;--border:#dcdad3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15151a;--card:#1f1f27;--text:#eeeef2;--muted:#9a9aa6;--accent:#8c7dff;--accent-t:#15151a;--border:#33333f}}
+:root[data-theme="dark"]{--bg:#15151a;--card:#1f1f27;--text:#eeeef2;--muted:#9a9aa6;--accent:#8c7dff;--accent-t:#15151a;--border:#33333f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+main{max-width:640px;margin:0 auto;padding:24px 16px 40px}
+h1{font-size:1.6rem;margin:0 0 4px}
+p.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+textarea{width:100%;min-height:90px;resize:vertical;border:1px solid var(--border);border-radius:10px;padding:10px;font:inherit;font-size:1.05rem;background:var(--bg);color:var(--text)}
+#out{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.3rem;word-break:break-word;min-height:90px;white-space:pre-wrap}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.btn{font:inherit;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:999px;padding:8px 14px;cursor:pointer}
+.seg button.on,.btn.primary{background:var(--accent);color:var(--accent-t);border-color:var(--accent)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.hint{font-size:.85rem;color:var(--muted);margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+<h1>Символьный переводчик</h1>
+<p class="sub">Превращает кириллицу в текст из похожих символов: любовь → JlЮБ0Вb</p>
+
+<div class="card">
+<label for="in">Исходный текст</label>
+<textarea id="in" placeholder="Введи слова на русском…"></textarea>
+</div>
+
+<div class="card">
+<label>Сила замены</label>
+<div class="seg" id="lvl">
+<button data-l="1">Мягко</button>
+<button data-l="2" class="on">Средне</button>
+<button data-l="3">Жёстко</button>
+</div>
+<div class="hint">«Мягко» — всегда одни и те же замены, «Средне» — случайные похожие буквы и цифры, «Жёстко» — ещё и символы вроде |&lt; или JI.</div>
+</div>
+
+<div class="card">
+<label>Результат</label>
+<div id="out"></div>
+<div class="row">
+<button class="btn primary" id="copy">Копировать</button>
+<button class="btn" id="again">Перегенерировать</button>
+</div>
+</div>
+</main>
+<script>
+// формат: безопасные варианты ; жёсткие варианты
+const M={
+а:'A 4 @;/-\\',б:'Б 6;b',в:'В B 8;|3',г:'Г r;7 |^',д:'Д D;g',
+е:'Е E 3;[-',ё:'Ё 3;Ё',ж:'Ж;>|< }|{',з:'3 Z;э',и:'N И u;11 |/|',
+й:'Й N;U\'',к:'К K;|< |(',л:'Л Jl;JI /\\',м:'М M;/\\/\\ |\\/|',н:'Н H;|-|',
+о:'О 0 O;()',п:'П n;/7 [7',р:'Р P p;|>',с:'С C c;$ (',т:'Т 7 T;|-',
+у:'У Y y;/',ф:'Ф;0|0 <|>',х:'Х X;>< }{',ц:'Ц U;LI,',ч:'4 Ч;"|"',
+ш:'Ш W;LLI |||',щ:'Щ;LLL |||,',ъ:'Ъ b;\'b',ы:'bI ЬI;b|',ь:'b Ь;\'b',
+э:'Э 3;€',ю:'Ю;|O 10 IO',я:'Я R;9I'
+};
+const D={};
+for(const k in M){const [s,h='']=M[k].split(';');D[k]={s:s.split(' ').filter(Boolean),h:h.split(' ').filter(Boolean)}}
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+let level=2;
+function conv(t){
+ return [...t].map(ch=>{
+  const lo=ch.toLowerCase(),d=D[lo];
+  if(!d)return ch;
+  if(level===1)return d.s[0];
+  if(level===2)return pick(d.s);
+  return pick(d.s.concat(d.h,d.h));
+ }).join('');
+}
+const $=id=>document.getElementById(id);
+function run(){$('out').textContent=conv($('in').value)}
+$('in').addEventListener('input',run);
+$('again').onclick=run;
+document.querySelectorAll('#lvl button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('#lvl button').forEach(x=>x.classList.remove('on'));
+ b.classList.add('on');level=+b.dataset.l;run();
+});
+$('copy').onclick=async()=>{
+ const t=$('out').textContent;
+ try{await navigator.clipboard.writeText(t)}catch(e){
+  const r=document.createRange();r.selectNodeContents($('out'));
+  const s=getSelection();s.removeAllRanges();s.addRange(r);
+ }
+ $('copy').textContent='Скопировано ✓';
+ setTimeout(()=>$('copy').textContent='Копировать',1200);
+};
+run();
+</script>
+</body>
+</html>
